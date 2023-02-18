@@ -18,17 +18,18 @@ class ViewController: UIViewController {
     }()
     
     var viewModel = ViewModel()
-    
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
     }
 
-    // MARK: - Private functions
+    // MARK: - Private functionsx
     private func setupView() {
+        // TableView loading
+        viewModel.getItems()
         
-        // View Settings
+        // View Settingsv 
         title = "To Do List"
         view.backgroundColor = .systemBackground
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(onTap))
@@ -47,8 +48,7 @@ class ViewController: UIViewController {
             guard let field = alert.textFields?.first, let text = field.text, !text.isEmpty else {
                 return
             }
-            self?.viewModel.createItem(title: text)
-            self?.viewModel.getItems()
+            self?.viewModel.createItem(text: text)
             DispatchQueue.main.async {
                 self?.tableView.reloadData()
             }
@@ -57,7 +57,9 @@ class ViewController: UIViewController {
     }
 }
 
+// MARK: - Extansion setting TableView
 extension ViewController: UITableViewDelegate, UITableViewDataSource {
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         viewModel.items.count
     }
@@ -65,11 +67,41 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let model = viewModel.items[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = model.title
+        cell.textLabel?.text = model.text
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.selectRow(at: indexPath, animated: true, scrollPosition: .middle)
+        tableView.deselectRow(at: indexPath, animated: true)
+        let model = viewModel.items[indexPath.row]
+        let sheet = UIAlertController(title: "Edit item", message: nil, preferredStyle: .alert)
+        sheet.addTextField(configurationHandler: nil)
+        sheet.addAction(UIAlertAction(title: "Edit", style: .cancel, handler: { [weak self] _  in
+            guard let field = sheet.textFields?.first, let text = field.text, !text.isEmpty else {
+                return
+            }
+            self?.viewModel.editItem(item: model, text: text)
+            DispatchQueue.main.async {
+                self?.tableView.reloadData()
+            }
+        }))
+        present(sheet, animated: true)
     }
+    
+    func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        return .delete
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle  == .delete {
+            tableView.beginUpdates()
+            viewModel.deleteItem(item: viewModel.items[indexPath.row])
+            DispatchQueue.main.async {
+                tableView.reloadData()
+            }
+            tableView.deleteRows(at: [indexPath], with: .fade)
+            tableView.endUpdates()
+        }
+    }
+    
 }
