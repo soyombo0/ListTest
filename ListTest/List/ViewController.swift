@@ -9,7 +9,7 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    // MARK: - Private Properties
+    // MARK: - Properties
     
     private let tableView: UITableView = {
         let table = UITableView()
@@ -17,19 +17,32 @@ class ViewController: UIViewController {
         return table
     }()
     
-    var viewModel = ViewModel()
+    let viewModel = ViewModel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        preload()
         setupView()
     }
 
     // MARK: - Private functionsx
+    
+    // Create a cell at the first run of app
+    private func preload() {
+        let defaults = UserDefaults.standard
+        let isPreloaded = defaults.bool(forKey: "isPreloaded")
+        
+        if !isPreloaded {
+            viewModel.createItem(text: "Simple task")
+            defaults.set(true, forKey: "isPreloaded")
+        }
+    }
+    
     private func setupView() {
         // TableView loading
         viewModel.getItems()
         
-        // View Settingsv 
+        // View Settings
         title = "To Do List"
         view.backgroundColor = .systemBackground
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(onTap))
@@ -42,9 +55,9 @@ class ViewController: UIViewController {
     }
     
     @objc private func onTap() {
-        let alert = UIAlertController(title: "Add Item", message: "Enter a new item", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Add tasks", message: "Enter a new task", preferredStyle: .alert)
         alert.addTextField(configurationHandler: nil)
-        alert.addAction(UIAlertAction(title: "Add", style: .cancel, handler: { [weak self] _  in
+        alert.addAction(UIAlertAction(title: "Add", style: .default, handler: { [weak self] _  in
             guard let field = alert.textFields?.first, let text = field.text, !text.isEmpty else {
                 return
             }
@@ -52,6 +65,9 @@ class ViewController: UIViewController {
             DispatchQueue.main.async {
                 self?.tableView.reloadData()
             }
+        }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .destructive, handler: { _ in
+            return
         }))
         present(alert, animated: true)
     }
@@ -74,10 +90,10 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let model = viewModel.items[indexPath.row]
-        let sheet = UIAlertController(title: "Edit item", message: nil, preferredStyle: .alert)
-        sheet.addTextField(configurationHandler: nil)
-        sheet.addAction(UIAlertAction(title: "Edit", style: .cancel, handler: { [weak self] _  in
-            guard let field = sheet.textFields?.first, let text = field.text, !text.isEmpty else {
+        let alert = UIAlertController(title: "Edit task", message: nil, preferredStyle: .alert)
+        alert.addTextField(configurationHandler: nil)
+        alert.addAction(UIAlertAction(title: "Edit", style: .default, handler: { [weak self] _  in
+            guard let field = alert.textFields?.first, let text = field.text, !text.isEmpty else {
                 return
             }
             self?.viewModel.editItem(item: model, text: text)
@@ -85,7 +101,10 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
                 self?.tableView.reloadData()
             }
         }))
-        present(sheet, animated: true)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .destructive, handler: { _ in
+            return
+        }))
+        present(alert, animated: true)
     }
     
     func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
